@@ -1,0 +1,175 @@
+---
+title: "Data analysis using Tidyverse"
+author: "Oxford Biomedical Data Science Training Programme"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(tidyverse)
+```
+
+## Prepare data
+
+### Read data in - `read_csv()`
+
+```{r}
+raw_data <- read_csv("data/140915_counts_rfp_pos_single_cell2.csv")
+```
+
+### `pivot_longer()` - convert to long format
+
+```{r}
+test_with_na <- raw_data %>% 
+    pivot_longer(-crypt_no, names_to = "mouse_typeofcount", values_to = "count")         # This will have NAs for crypt numbers that weren't counted for a given mouse
+
+data_processed <- raw_data %>% 
+    pivot_longer(-crypt_no, names_to = "mouse_typeofcount", values_to = "count", 
+                 values_drop_na = TRUE)
+```
+
+### `separate()` mouse and count type
+
+```{r}
+data_processed <- data_processed %>% 
+    separate(mouse_typeofcount, c("Mouse_ID", "count_type"), sep = "_")
+```
+
+### `spread()` - want two columns (RFPpos, TotalCells)
+
+```{r}
+data_processed <- data_processed %>% 
+    pivot_wider(names_from = count_type, values_from = count)
+```
+
+### Do all the processing steps together
+
+```{r}
+data_processed <- raw_data %>% 
+    pivot_longer(-crypt_no, names_to = "mouse_typeofcount", values_to = "count", 
+                 values_drop_na = TRUE) %>% 
+    separate(mouse_typeofcount, c("Mouse_ID", "count_type"), sep = "_") %>% 
+    pivot_wider(names_from = count_type, values_from = count)                                       
+```
+
+### Join mouse info
+
+```{r}
+mouse_info <- read_csv("data/mouse_info.csv")
+data_processed <- data_processed %>% 
+    left_join(mouse_info) 
+# Will join by one or more col names if the same in both tables
+# Sometimes you need to specify the columns to match e.g. by = c("from_name" = "to_name")
+
+# Data is now tidy!!
+```
+
+### Rename and reorder columns
+
+```{r}
+data_processed <- data_processed %>%
+    rename(Crypt_number = crypt_no, Total_cells = TotalCells, Day_post_label = Day_PostLabel) %>%
+    select(Mouse_ID, Sex, Crypt_number, Day_post_label, RFPpos, Total_cells)
+```
+
+## Explore data - plots and summary analysis
+
+### Total cells in crypts
+
+```{r}
+data_processed %>% 
+    ggplot(aes(x = Total_cells)) + 
+    geom_histogram()
+
+data_processed %>%
+    ggplot(aes(x = Total_cells)) + 
+    geom_histogram() + 
+    facet_wrap(~ Mouse_ID)
+
+data_processed %>%
+    ggplot(aes(x = Total_cells)) + 
+    geom_histogram() +
+    facet_wrap(~ Day_post_label)
+
+data_processed %>% 
+    ggplot(aes(x = Total_cells)) + 
+    geom_histogram() + 
+    facet_grid(Sex ~ Day_post_label)
+```
+
+### Labelled cells in crypts
+
+```{r}
+data_processed %>%
+    ggplot(aes(x = RFPpos)) + 
+    geom_histogram(bins = 20)
+
+data_processed %>%
+    ggplot(aes(x = RFPpos)) +
+    geom_histogram(bins = 20) + 
+    facet_wrap(~ Day_post_label)
+
+## Plot against each other
+data_processed %>% 
+    ggplot(aes(x = RFPpos, y = Total_cells, size = Mouse_ID)) + 
+    geom_point() + 
+    facet_wrap(~ Day_post_label)
+
+data_processed %>% 
+    ggplot(aes(x = RFPpos, y = Total_cells, col = Mouse_ID)) + 
+    geom_point(alpha = 0.2)
+```
+
+### Proportion of labelled cells - `mutate()` to add a new column
+
+```{r}
+# Add a new column
+data_processed <- data_processed %>% 
+    mutate(proportion_rfp = RFPpos/Total_cells)
+
+data_processed %>% 
+    ggplot(aes(x = proportion_rfp)) + 
+    geom_histogram(bins = 20) + 
+    facet_wrap(~ Day_post_label)
+```
+
+### Summary statistics using `group_by()` and `summarise()`
+
+```{r}
+# Summary of numbers                                                        
+data_processed %>% 
+    group_by(Mouse_ID) %>% 
+    summarise(num_crypts = n(), mean_rfp = mean(RFPpos), mean_num_cells = mean(Total_cells))
+
+data_processed %>% 
+    group_by(Day_post_label) %>% 
+    summarise(num_crypts = n())
+```
+
+### Selecting specific rows (`filter()`) and columns (`select()`)
+
+```{r}
+# Keep only large crypts (> 15 cells)
+data_processed %>% 
+    filter(Total_cells > 15)
+
+# Keep only female
+data_processed %>% 
+    filter(Sex == "F")
+
+# Keep only mouse 108422-6 
+data_processed %>% 
+    filter(Mouse_ID == "108422-6")
+
+# Select a few columns
+data_processed %>% 
+    dplyr::select(RFPpos:Day_post_label)
+
+# Drop a column
+data_processed %>% 
+    dplyr::select(-Crypt_number)
+```
