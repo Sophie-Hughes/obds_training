@@ -210,7 +210,7 @@ ggplot(ChickWeight, aes(x= Time, y = weight, colour = Diet)) +
 #setting row.names = says the first row is the header?
 log_counts <- read.csv("data/logcounts.csv", row.names = 1)
 View(log_counts)
-cell_md <- read.csv("data/cell_metadata.csv", row.names = 1)
+cell_md <- read.csv("data/cell_metadata.csv",row.names=1)
 View(cell_md)
 
 #For each gene (i.e. row) in log_count, use cell_md and a statistical test of your choice to identify gene differentially expressed in cells infected with Salmonella relative to the control uninfected cells.
@@ -221,9 +221,31 @@ test_result <- t.test(log_count~infection, gene1)
 str(test_result)
 test_result[['p.value']]
 #
-diff_exp <- function(gene1){
-    data_frame("log_count" = as.numeric(log_counts[]), infection = cell_md$Infection)
-    t.test(log_count~infection, gene1)
+diff_exp <- function(gene_index, matrix, groups){
+    gene_row <- data.frame("log_count" = as.numeric(matrix[gene_index,]), infection = groups)
+    test_result<- t.test(log_count~infection, gene_row)
+    return(test_result[['p.value']])
 }
 
-apply
+diff_exp(3,log_counts,cell_md$Infection)
+
+p_values <- vapply(seq(1,nrow(log_counts)), diff_exp, numeric(1), matrix = log_counts, groups = cell_md$Infection)
+
+names(p_values) <- rownames(log_counts)
+p_values
+padj_values <- p.adjust(p_values, method = "holm")
+hist(padj_values)
+
+head(sort(padj_values))
+
+
+#read in human_go
+
+#put as list
+
+#vapply - for each pathway - build table for features test (diff or not diff expressed) - how many genes belong in pathway or not
+#Fishers test
+
+#take first pathway, test 1 pathway - turn into function and test vapply over all pathways
+
+#initialise env to new place
