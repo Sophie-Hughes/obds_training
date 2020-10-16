@@ -232,11 +232,35 @@ diff_exp(3,log_counts,cell_md$Infection)
 p_values <- vapply(seq(1,nrow(log_counts)), diff_exp, numeric(1), matrix = log_counts, groups = cell_md$Infection)
 
 names(p_values) <- rownames(log_counts)
-p_values
-padj_values <- p.adjust(p_values, method = "holm")
-hist(padj_values)
+head(p_values)
+p_adjusted <- p.adjust(p_values, method = "BH") #p-values adjusted with Benjamini & Hochberg - fewer p values
+hist(p_adjusted)
 
-head(sort(padj_values))
+head(sort(p_adjusted))
+
+hist(p_values, breaks = 50)
+hist(p_adjusted, breaks = 50)
+
+table(p_adjusted < 0.5) #tells us how many true and false
+
+#subset the significant genes and use them to find the signalling pathway
+#which adjusted p values are less than 0.5
+#give names of genes with p-value less than 0.5
+sig_gene_names <- names(p_adjusted[p_adjusted < 0.05]) #extract out names of p_adjusted values less than 0.5
+sig_gene_names
+
+
+
+
+#--------------------#
+#Fishers exact test:
+#fisher test - for each pathway we take list of genes (group 2) compared with group 1 - genes that are differntially expressed . Total genes = entire set of genes we've tested (1000 in this dataset but in real case scenario it's all the genes that could be differentially expressed - rarely use entire genome )
+
+#group 1 = deferentially expressed gene
+#group 2 = genes in your pathway
+
+
+
 
 
 #read in human_go
