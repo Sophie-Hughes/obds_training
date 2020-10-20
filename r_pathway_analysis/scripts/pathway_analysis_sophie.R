@@ -147,3 +147,6 @@ ridgeplot(go_enrich)
 enrichplot::gseaplot2(go_enrich, geneSetID = c("GO:0045087","GO:0002768"))
 
 terms <- go_enrich$Description[1:3] enrichplot::pmcplot(terms, 2010:2020)
+
+#clusterProfiler method is most popular right now 
+#a lot of pathway analysis pacakges are out of date 
