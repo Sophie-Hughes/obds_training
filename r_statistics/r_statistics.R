@@ -254,18 +254,77 @@ sig_gene_names
 
 #--------------------#
 #Fishers exact test:
-#fisher test - for each pathway we take list of genes (group 2) compared with group 1 - genes that are differntially expressed . Total genes = entire set of genes we've tested (1000 in this dataset but in real case scenario it's all the genes that could be differentially expressed - rarely use entire genome )
+#Fisher test - for each pathway we take list of genes (group 2) compared with group 1 - genes that are differntially expressed . Total genes = entire set of genes we've tested (1000 in this dataset but in real case scenario it's all the genes that could be differentially expressed - rarely use entire genome )
 
 #group 1 = deferentially expressed gene
 #group 2 = genes in your pathway
 
+#Fishers more precise than Chi-sqr with small dataset -don't run chi-srq when expected values < 5 - always run Fishers
 
-
-
+#build contingency table:
 
 #read in human_go
+human_go <- read.csv("data/human_go_bp.csv")
+View(human_go)
 
 #put as list
+pathway_list <- split(human_go$ensembl_gene_id, human_go$go_id) #create list so column ensemble id is split and all genes will belong to 1 go id
+
+path_1 <- pathway_list[[1]] #[[]] returns item in list, [] returns list
+
+#build a table that has 1 row per 1000 genes (table with 1000 rows), each row represents a gene, 1st col (true/false - ), 2nd col (true,false)
+
+sum(rownames(log_counts) %in% sig_gene_names) #for each gene in rownames(log_count) is it in significant_gene_names? -returns boolean
+
+overlap_table <- data.frame(row.names = rownames(log_counts),
+           significant = rownames(log_counts) %in% sig_gene_names,
+           pathway = rownames(log_counts) %in% path_1)
+
+contigency_table <- table(overlap_table) #used a dataframe to get the contigency table
+
+#Fisher table:
+fisher_result <- fisher.test(contigency_table, alternative = "less")
+fisher_result$p.value
+
+#fisher asks if pathway over or under represented in list? -over-representation uses alternative = "greater" in fisher.test gives p-value =1, under-representation uses alternative = "less"
+
+
+
+#For all pathways:
+
+#define a function for fisher.test, in order to run the signal pathway
+signal_pathway <- function(pathway, matrix, sig_genes){
+    overlap_table <- data.frame(
+        row.names = rownames(matrix),
+        significant = factor(rownames(matrix) %in% sig_genes, c(FALSE, TRUE)),
+        pathway = factor(rownames(matrix) %in% pathway, c(FALSE, TRUE)))
+    fisher_result <- fisher.test(table(overlap_table), alternative = "greater")
+    return(fisher_result$p.value)
+}
+
+
+#significant = factor(rownames(matrix) %in% sig_genes, c(FALSE, TRUE)) - defines level of factor, even if R only sees 1 value, we're forcing R to create two levels (rows) to maintain contingency table structure.
+
+#calling function on first gene pathway, defined earlier as path1
+signal_pathway(path_1, log_counts, sig_gene_names)
+
+#call function on all pathways using lapply
+
+fisher_all_pathway <- sapply(pathway_list, signal_pathway, matrix = log_counts, sig_genes = sig_gene_names)
+
+unique(fisher_all_pathway)
+
+hist(fisher_all_pathway, breaks = 50)
+
+fisher_final <-p.adjust(fisher_all_pathway, method = "BH")
+hist(fisher_final, breaks = 50)
+head(sort(fisher_final))
+
+
+#bioconductor package for gene ontology analysis - topGO - plots graph with entire branches that are significant (overlapping pathways) - look for more generic pathway with lowest p-value. Report significant enrichment in the most generic pathway (don't list the 10 associated pathways just say for eg T cell proliferation)
+
+
+
 
 #vapply - for each pathway - build table for features test (diff or not diff expressed) - how many genes belong in pathway or not
 #Fishers test
