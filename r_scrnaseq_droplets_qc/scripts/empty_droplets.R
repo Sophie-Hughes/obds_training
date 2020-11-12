@@ -18,6 +18,7 @@ set.seed(123)
 detected_droplet <- emptyDrops(assay(pbmc1k)) #pass the matrix from the pbmc1k dataset 
 
 detected_droplet #DataFrame with 6794880 rows and 5 columns #discard 0s
+#stat with false discovery rate FDR and UMI. P value is that you're confident it's not an empty droplet. High p value for barcode means it's likely to be an empty droplet. low p value means it's likely to be a cell 
 
 detected_droplet$rank <- rank(-detected_droplet$Total) #give 1 to the highest 
 
@@ -50,14 +51,16 @@ pbmc1k_filter <- pbmc1k[, which(detected_droplet$FDR < 0.01)] #keep everything w
 
 pbmc1k_filter #33538 x 1206 
 
-#PART 2: doublet exercise 
+#=======PART 2: doublet exercise========  
 
 doublets <- scDblFinder(pbmc1k_filter) #1% per thousand cells 
 #16 (1.3%) doublets called 
+#expecting 1% of sample to be doublets in 1000 cells - 10 cells 
+#
 #clustering = null 
 
 doublets
-colData(doublets) #DataFrame with 1206 rows and 12 columns 
+colData(doublets) #DataFrame with 1206 rows and 12 columns - adds metadata  
 
 #check the number of singlets/doublets 
 table(doublets$scDblFinder.class)
@@ -80,3 +83,17 @@ singlets_only #dim: 33538 x 1190 (removed 16 doublets)
 #exclude empty droplets (e.g., FDR < 0.01)
 #run scDblFinder
 #exclude doublets (doing this right now)
+
+
+#Cellranger doesn't detect doublets - so be sure to remove these before normalising 
+#load data in seurat, normalise, find variable features, scale, run PCA, run UMAP.
+
+#After excluding empty droplets, compare how we have filtered compared to cell ranger in pbmc_filtered data 
+
+#convert pbmc1k_filtered to seurat object - could see how many doublets that DoubletFinder - pick one of sctransform or standard method - he's overlapped two methods 
+#don't use ground truth method - you won't know what's a doublet and what's a singlet 
+#either assume you're 
+
+#run 1st, 3rd and few lines from the last few sections Message by Kevin Rue
+#https://github.com/chris-mcginnis-ucsf/DoubletFinder#example-code-for-real-world-applications 
+#not the preferred method though! 
