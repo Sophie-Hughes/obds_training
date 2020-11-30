@@ -1,0 +1,8 @@
+
+#fasta file index taken from ftp://ftp.ensembl.org/pub/release-101/fasta/mus_musculus/cdna
+fasta_file: Mus_musculus.GRCm38.cdna.all.fa.gz
+
+kallisto_quant:
+  threads: 12
+  index: Mus_musculus.GRCm38.cdna.all.idx
+  option: --rf-stranded

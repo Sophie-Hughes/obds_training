@@ -1,0 +1,10 @@
+hisat2:
+    index: /ifs/mirror/genomes/hisat2/mm10
+    threads: 12
+    options: --rna-strandness RF
+
+featurecounts:
+    annotation: /ifs/obds-training/sep20/shared/week1/rnaseq/genes.gtf.gz
+    options: -p
+    threads: 12
+    strandness: 2
